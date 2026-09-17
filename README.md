@@ -91,11 +91,11 @@ AI 负责「造工具」这一高价值环节；敏感数据的处理则交给�
 
 **工作台** — 按文档类型分组呈现 12 项功能，支持点击或拖拽上传。
 
-![工作台](docs/screenshot-workbench.jpg?v=2)
+![工作台](docs/screenshot-workbench.png?v=3)
 
 **系统设置** — 逐项开关控制功能启停，配置持久化到 `config.json`。
 
-![系统设置](docs/screenshot-settings.jpg?v=2)
+![系统设置](docs/screenshot-settings.png?v=3)
 
 ---
 
