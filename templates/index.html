@@ -1,0 +1,921 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="light">
+<title>内网文档处理工作台</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%231A3D6D'/%3E%3Cpath d='M11 8h7l4 4v12H11z' fill='none' stroke='white' stroke-width='2' stroke-linejoin='round'/%3E%3Cpath d='M14 17h5M14 21h5' stroke='white' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E">
+<style>
+:root {
+  --ink:        #0F1E33;
+  --text:       #33415C;
+  --sub:        #6B7A90;
+  --mute:       #98A6BA;
+  --line:       #E6EAF0;
+  --line-2:     #D5DCE6;
+  --surface:    #FFFFFF;
+  --canvas:     #F6F8FB;
+  --brand:      #1A3D6D;
+  --brand-deep: #14355F;
+  --brand-2:    #2A5C99;
+  --brand-3:    #4A80BF;
+  --tint:       #EEF3FA;
+  --tint-2:     #E1EBF7;
+  --gold:       #B4884A;
+  --ok:         #0B7A4B;
+  --ok-bg:      #F5FCF8;
+  --ok-line:    #CBEBD9;
+  --bad:        #9A2A1D;
+  --bad-bg:     #FFF7F6;
+  --bad-line:   #F6D5D1;
+  --warn:       #B54708;
+  --sh-1:       0 1px 2px rgba(16,30,54,.04);
+  --sh-2:       0 1px 3px rgba(16,30,54,.06), 0 10px 28px -14px rgba(16,30,54,.14);
+  --sh-3:       0 4px 12px rgba(16,30,54,.08), 0 20px 48px -20px rgba(16,30,54,.22);
+  --r-sm:       7px;
+  --r-md:       10px;
+  --r-lg:       14px;
+  --t:          .2s cubic-bezier(.4, 0, .2, 1);
+  --font:       -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei",
+                "PingFang SC", "Hiragino Sans GB", "Source Han Sans SC", sans-serif;
+  --mono:       "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  font-family: var(--font);
+  background: var(--canvas);
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+button { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; }
+input, textarea, select { font-family: inherit; font-size: 14px; }
+a { color: inherit; text-decoration: none; }
+h1, h2, h3 { font-weight: 700; line-height: 1.35; }
+ul { list-style: none; }
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #CFD8E3; border: 3px solid var(--canvas); border-radius: 8px; }
+::-webkit-scrollbar-thumb:hover { background: #A9B7C9; }
+::selection { background: var(--tint-2); color: var(--brand-deep); }
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(255, 255, 255, .88);
+  backdrop-filter: saturate(180%) blur(12px);
+  -webkit-backdrop-filter: saturate(180%) blur(12px);
+  border-bottom: 1px solid var(--line);
+}
+.topbar-inner {
+  max-width: 1360px;
+  margin: 0 auto;
+  padding: 0 28px;
+  height: 68px;
+  display: flex;
+  align-items: center;
+  gap: 28px;
+}
+.brand { display: flex; align-items: center; gap: 12px; flex: none; }
+.brand-icon {
+  width: 40px; height: 40px; border-radius: 10px;
+  display: grid; place-items: center; font-size: 20px;
+  background: linear-gradient(140deg, var(--brand) 0%, var(--brand-2) 100%);
+  box-shadow: 0 4px 12px -4px rgba(26,61,109,.5);
+  flex: none;
+}
+.brand-text { display: flex; flex-direction: column; line-height: 1.25; }
+.brand-name { font-size: 15.5px; font-weight: 700; color: var(--ink); letter-spacing: .01em; }
+.brand-sub { font-size: 10.5px; color: var(--mute); letter-spacing: .1em; text-transform: uppercase; font-weight: 500; }
+.nav-tabs { display: flex; gap: 2px; margin-left: auto; }
+.tab {
+  position: relative; padding: 8px 16px; font-size: 13.5px; font-weight: 500;
+  color: var(--sub); border-radius: var(--r-sm); transition: var(--t);
+}
+.tab:hover { color: var(--brand-2); background: var(--tint); }
+.tab.active { color: var(--brand); font-weight: 600; background: var(--tint); }
+.tab.active::after {
+  content: ''; position: absolute; left: 16px; right: 16px; bottom: -1px;
+  height: 2px; border-radius: 2px; background: var(--brand);
+}
+.navbar-status {
+  display: flex; align-items: center; gap: 9px; font-size: 12px; color: var(--sub);
+  padding: 6px 13px; border: 1px solid var(--line); border-radius: 999px;
+  background: #FCFDFE; flex: none;
+}
+.status-dot {
+  width: 7px; height: 7px; border-radius: 50%; background: #12A05C;
+  box-shadow: 0 0 0 3px rgba(18,160,92,.16); animation: breathe 2.4s ease-in-out infinite;
+}
+.version-badge {
+  font-family: var(--mono); font-size: 10.5px; font-weight: 600; color: var(--brand-2);
+  background: var(--tint); border: 1px solid var(--tint-2); padding: 1px 7px; border-radius: 999px;
+}
+@keyframes breathe { 0%, 100% { opacity: 1; } 50% { opacity: .42; } }
+
+.page { display: none; flex: 1; }
+.page.active { display: block; }
+.wrap { max-width: 1360px; margin: 0 auto; padding: 32px 28px 72px; }
+
+.hero {
+  position: relative; overflow: hidden; border-radius: var(--r-lg);
+  padding: 36px 40px; color: #fff;
+  background:
+    radial-gradient(900px 320px at 96% -10%, rgba(74,128,191,.42), transparent 62%),
+    linear-gradient(135deg, var(--brand-deep) 0%, var(--brand) 48%, #24558F 100%);
+  box-shadow: 0 20px 44px -26px rgba(20,53,95,.6);
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 36px; align-items: center;
+}
+.hero::before {
+  content: ''; position: absolute; left: 0; right: 0; top: 0; height: 3px;
+  background: linear-gradient(90deg, var(--gold) 0%, rgba(180,136,74,.35) 42%, transparent 78%);
+}
+.hero::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background-image:
+    linear-gradient(rgba(255,255,255,.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.05) 1px, transparent 1px);
+  background-size: 46px 46px;
+  -webkit-mask-image: radial-gradient(680px 300px at 92% 0%, #000, transparent 74%);
+  mask-image: radial-gradient(680px 300px at 92% 0%, #000, transparent 74%);
+}
+.hero-content { position: relative; z-index: 1; min-width: 0; }
+.hero-eyebrow {
+  display: inline-flex; align-items: center; gap: 8px; font-size: 11px;
+  font-weight: 600; letter-spacing: .16em; text-transform: uppercase;
+  color: rgba(255,255,255,.72); margin-bottom: 14px;
+}
+.hero-eyebrow::before { content: ''; width: 22px; height: 1px; background: var(--gold); }
+.hero h1 { font-size: 27px; letter-spacing: .01em; margin-bottom: 12px; }
+.hero p { font-size: 13.5px; line-height: 1.75; color: rgba(255,255,255,.82); max-width: 620px; }
+.hero-stats {
+  position: relative; z-index: 1; display: flex; align-items: stretch;
+  border: 1px solid rgba(255,255,255,.16); border-radius: var(--r-md);
+  background: rgba(255,255,255,.06); backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px); overflow: hidden;
+}
+.hero-stat {
+  padding: 16px 22px; min-width: 118px; text-align: center;
+  border-left: 1px solid rgba(255,255,255,.12);
+}
+.hero-stat:first-child { border-left: none; }
+.hero-stat-num { font-size: 20px; font-weight: 700; letter-spacing: .01em; font-variant-numeric: tabular-nums; }
+.hero-stat-num.mono { font-family: var(--mono); font-size: 13.5px; font-weight: 600; }
+.hero-stat-label { font-size: 10.5px; letter-spacing: .08em; color: rgba(255,255,255,.66); margin-top: 3px; }
+
+.group { margin-top: 42px; }
+.group:first-child { margin-top: 38px; }
+.group-head {
+  display: flex; align-items: baseline; gap: 13px; padding-bottom: 13px;
+  border-bottom: 1px solid var(--line); margin-bottom: 22px;
+}
+.group-no { font-family: var(--mono); font-size: 11.5px; font-weight: 700; letter-spacing: .1em; color: var(--gold); flex: none; }
+.group-head h2 { font-size: 16.5px; color: var(--ink); letter-spacing: .01em; }
+.group-count { margin-left: auto; font-size: 11.5px; color: var(--mute); font-variant-numeric: tabular-nums; flex: none; }
+
+.card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 18px; }
+.card {
+  position: relative; overflow: hidden; background: var(--surface);
+  border: 1px solid var(--line); border-radius: var(--r-md); padding: 22px;
+  display: flex; flex-direction: column; box-shadow: var(--sh-1);
+  transition: box-shadow var(--t), border-color var(--t), transform var(--t);
+}
+.card::before {
+  content: ''; position: absolute; left: 0; right: 0; top: 0; height: 2px;
+  background: linear-gradient(90deg, var(--brand) 0%, var(--brand-3) 100%);
+  transform: scaleX(0); transform-origin: left;
+  transition: transform .3s cubic-bezier(.4,0,.2,1);
+}
+.card:hover { box-shadow: var(--sh-2); border-color: var(--tint-2); transform: translateY(-2px); }
+.card:hover::before { transform: scaleX(1); }
+.card[data-enabled="false"] { background: #FBFCFD; border-color: var(--line); box-shadow: none; }
+.card[data-enabled="false"]:hover { transform: none; box-shadow: none; border-color: var(--line); }
+.card[data-enabled="false"]::before { display: none; }
+.card[data-enabled="false"] .card-icon-wrap { filter: grayscale(1); opacity: .5; }
+.card[data-enabled="false"] .card-title,
+.card[data-enabled="false"] .card-desc { opacity: .55; }
+.card-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; margin-bottom: 15px; }
+.card-icon-wrap {
+  width: 46px; height: 46px; flex: none; border-radius: var(--r-md);
+  display: grid; place-items: center; font-size: 21px;
+  background: var(--tint); border: 1px solid var(--tint-2);
+}
+.card-status {
+  display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px;
+  border-radius: 999px; font-size: 11px; font-weight: 600; white-space: nowrap; flex: none;
+}
+.card-status::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.card-status.on  { background: #EDFBF3; color: var(--ok); border: 1px solid #D2EFDF; }
+.card-status.off { background: #F4F6F9; color: var(--mute); border: 1px solid var(--line); }
+.card-title { font-size: 15.5px; font-weight: 700; color: var(--ink); letter-spacing: .01em; margin-bottom: 7px; }
+.card-desc { font-size: 12.5px; line-height: 1.75; color: var(--sub); margin-bottom: 18px; flex: 1; }
+.card-params { display: flex; flex-direction: column; gap: 11px; margin-bottom: 14px; }
+.param-row { display: flex; flex-direction: column; gap: 5px; }
+.param-row label { font-size: 11.5px; font-weight: 600; color: var(--text); letter-spacing: .02em; }
+.param-row input,
+.param-row textarea {
+  width: 100%; padding: 9px 11px; border: 1px solid var(--line-2);
+  border-radius: var(--r-sm); font-size: 13px; color: var(--ink);
+  background: #FCFDFE; transition: var(--t);
+}
+.param-row input::placeholder,
+.param-row textarea::placeholder { color: var(--mute); }
+.param-row input:focus,
+.param-row textarea:focus {
+  outline: none; border-color: var(--brand-3); background: #fff;
+  box-shadow: 0 0 0 3px rgba(42,92,153,.1);
+}
+.param-row textarea { min-height: 88px; resize: vertical; line-height: 1.65; }
+.card-drop {
+  border: 1.5px dashed var(--line-2); border-radius: var(--r-md);
+  background: #FBFCFE; padding: 18px 16px; text-align: center;
+  cursor: pointer; transition: var(--t); margin-bottom: 12px;
+}
+.card-drop:hover { border-color: var(--brand-3); background: var(--tint); }
+.card-drop.dragover { border-color: var(--brand); border-style: solid; background: var(--tint-2); }
+.card-drop-icon { font-size: 22px; line-height: 1; margin-bottom: 7px; opacity: .85; }
+.card-drop-hint { font-size: 12.5px; color: var(--text); line-height: 1.6; }
+.card-drop-hint strong { color: var(--brand-2); font-weight: 700; }
+.card-files {
+  display: none; background: var(--tint); border: 1px solid var(--tint-2);
+  border-radius: var(--r-sm); padding: 9px 12px; margin-bottom: 12px; font-size: 12px;
+}
+.card-files.show { display: block; }
+.card-files-count { font-weight: 700; color: var(--brand-2); display: flex; align-items: center; gap: 6px; }
+.card-files-list { margin-top: 4px; font-size: 11.5px; color: var(--sub); line-height: 1.55; word-break: break-all; }
+.card-btn {
+  width: 100%; min-height: 42px; padding: 11px 16px; border-radius: var(--r-sm);
+  background: var(--brand); border: 1px solid var(--brand); color: #fff;
+  font-size: 13.5px; font-weight: 600; letter-spacing: .02em;
+  display: flex; align-items: center; justify-content: center; gap: 8px; transition: var(--t);
+}
+.card-btn:hover:not(:disabled) { background: var(--brand-deep); border-color: var(--brand-deep); }
+.card-btn:active:not(:disabled) { transform: translateY(1px); }
+.card-btn:disabled { background: #E9EDF3; border-color: var(--line-2); color: #9AA7B8; cursor: not-allowed; }
+.card-btn.processing { background: var(--brand-2); border-color: var(--brand-2); }
+.card-btn .spinner {
+  width: 13px; height: 13px; border: 2px solid rgba(255,255,255,.35);
+  border-top-color: #fff; border-radius: 50%; animation: spin .62s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.card-result { margin-top: 12px; display: none; }
+.card-result.show { display: block; }
+.result-success, .result-error { border-radius: var(--r-md); padding: 12px 13px; font-size: 12.5px; border: 1px solid; }
+.result-success { background: var(--ok-bg); border-color: var(--ok-line); color: var(--ok); }
+.result-error   { background: var(--bad-bg); border-color: var(--bad-line); color: var(--bad); }
+.result-tag { display: inline-flex; align-items: center; gap: 7px; font-weight: 700; font-size: 11.5px; letter-spacing: .04em; }
+.result-tag::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.result-success a {
+  display: flex; align-items: center; gap: 10px; margin-top: 9px; padding: 9px 11px;
+  background: #fff; border: 1px solid var(--ok-line); border-radius: var(--r-sm);
+  color: var(--brand); font-weight: 600; transition: var(--t);
+}
+.result-success a:hover { border-color: var(--brand-3); background: var(--tint); }
+.result-file { flex: 1; min-width: 0; font-size: 12px; word-break: break-all; }
+.result-dl { flex: none; font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 999px; background: var(--brand); color: #fff; }
+.result-meta { margin-top: 9px; font-size: 11px; line-height: 1.65; color: #4B7A63; font-variant-numeric: tabular-nums; }
+.result-error p { margin-top: 7px; line-height: 1.65; word-break: break-all; }
+
+.settings-container { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); box-shadow: var(--sh-1); overflow: hidden; }
+.settings-header {
+  padding: 26px 30px; border-bottom: 1px solid var(--line);
+  display: flex; align-items: center; justify-content: space-between; gap: 20px;
+  background: linear-gradient(180deg, #FBFCFE 0%, #FFFFFF 100%);
+}
+.settings-header h2 { font-size: 17px; color: var(--ink); margin-bottom: 5px; letter-spacing: .01em; }
+.settings-header p { font-size: 12.5px; color: var(--sub); line-height: 1.7; max-width: 620px; }
+.settings-actions { display: flex; gap: 8px; flex: none; }
+.btn {
+  padding: 9px 16px; border-radius: var(--r-sm); font-size: 13px; font-weight: 600;
+  transition: var(--t); display: inline-flex; align-items: center; gap: 6px; white-space: nowrap;
+}
+.btn-primary { background: var(--brand); color: #fff; border: 1px solid var(--brand); }
+.btn-primary:hover { background: var(--brand-deep); border-color: var(--brand-deep); }
+.btn-secondary { background: #fff; color: var(--text); border: 1px solid var(--line-2); }
+.btn-secondary:hover { background: var(--tint); border-color: var(--brand-3); color: var(--brand-2); }
+.settings-list { padding: 0; }
+.set-group { border-bottom: 1px solid var(--line); }
+.set-group:last-child { border-bottom: none; }
+.set-group-head { display: flex; align-items: center; gap: 12px; padding: 16px 30px 10px; background: #FCFDFE; }
+.set-group-head h3 { font-size: 12px; font-weight: 700; letter-spacing: .1em; color: var(--sub); }
+.setting-item {
+  display: flex; align-items: center; gap: 16px; padding: 16px 30px;
+  border-top: 1px solid #F2F5F9; transition: var(--t);
+}
+.set-group .setting-item:first-of-type { border-top: none; }
+.setting-item:hover { background: #FBFCFE; }
+.setting-icon {
+  width: 42px; height: 42px; flex: none; border-radius: var(--r-sm);
+  display: grid; place-items: center; font-size: 19px;
+  background: var(--tint); border: 1px solid var(--tint-2);
+}
+.setting-info { flex: 1; min-width: 0; }
+.setting-name { font-size: 13.5px; font-weight: 600; color: var(--ink); margin-bottom: 3px; }
+.setting-desc { font-size: 12px; color: var(--sub); line-height: 1.65; margin-bottom: 6px; }
+.setting-key {
+  display: inline-block; font-family: var(--mono); font-size: 10.5px; color: var(--mute);
+  background: #F6F8FB; border: 1px solid var(--line); border-radius: 4px; padding: 1px 7px;
+}
+.toggle { position: relative; display: inline-block; width: 46px; height: 26px; flex: none; }
+.toggle input { opacity: 0; width: 0; height: 0; position: absolute; }
+.toggle-slider {
+  position: absolute; inset: 0; cursor: pointer; background: #CBD5E1;
+  border-radius: 999px; transition: var(--t);
+}
+.toggle-slider::before {
+  content: ''; position: absolute; height: 20px; width: 20px; left: 3px; top: 3px;
+  background: #fff; border-radius: 50%; transition: var(--t);
+  box-shadow: 0 1px 3px rgba(15,30,51,.24);
+}
+.toggle input:checked + .toggle-slider { background: var(--brand); }
+.toggle input:checked + .toggle-slider::before { transform: translateX(20px); }
+.toggle input:focus-visible + .toggle-slider { box-shadow: 0 0 0 3px rgba(42,92,153,.2); }
+
+.foot { border-top: 1px solid var(--line); background: #fff; margin-top: auto; }
+.foot-inner {
+  max-width: 1360px; margin: 0 auto; padding: 22px 28px;
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 16px; flex-wrap: wrap; font-size: 12px; color: var(--mute);
+}
+.foot-item { display: inline-flex; align-items: center; gap: 8px; }
+.foot-sep { width: 1px; height: 12px; background: var(--line-2); }
+
+.toast-container {
+  position: fixed; top: 84px; right: 28px; z-index: 1000;
+  display: flex; flex-direction: column; gap: 10px; pointer-events: none;
+}
+.toast {
+  background: #fff; border: 1px solid var(--line); border-left: 3px solid var(--brand);
+  border-radius: var(--r-sm); box-shadow: var(--sh-3); padding: 12px 15px;
+  display: flex; align-items: center; gap: 10px; min-width: 250px; max-width: 400px;
+  font-size: 12.5px; animation: toastIn .26s cubic-bezier(.4,0,.2,1); pointer-events: auto;
+}
+.toast-success { border-left-color: #12A05C; }
+.toast-error   { border-left-color: #D64545; }
+.toast-warning { border-left-color: var(--warn); }
+.toast-msg { color: var(--text); flex: 1; line-height: 1.6; }
+.toast-icon { flex: none; width: 18px; height: 18px; display: grid; place-items: center; font-size: 13px; font-weight: 700; }
+.toast-icon.success { color: #12A05C; }
+.toast-icon.error   { color: #D64545; }
+.toast-icon.warning { color: var(--warn); }
+.toast-icon.info    { color: var(--brand-2); }
+@keyframes toastIn { from { opacity: 0; transform: translateX(24px); } to { opacity: 1; transform: translateX(0); } }
+
+@media (max-width: 1080px) {
+  .hero { grid-template-columns: 1fr; gap: 26px; padding: 30px 28px; }
+  .hero-stats { justify-content: space-between; }
+  .hero-stat { flex: 1; }
+}
+@media (max-width: 860px) {
+  .card-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .settings-header { flex-direction: column; align-items: stretch; }
+  .settings-actions { justify-content: flex-end; flex-wrap: wrap; }
+}
+@media (max-width: 640px) {
+  .topbar-inner { padding: 0 16px; gap: 12px; height: 62px; }
+  .brand-sub { display: none; }
+  .brand-name { font-size: 14px; }
+  .navbar-status { display: none; }
+  .nav-tabs { margin-left: auto; }
+  .tab { padding: 7px 12px; font-size: 13px; }
+  .tab.active::after { left: 12px; right: 12px; }
+  .wrap { padding: 20px 16px 52px; }
+  .hero { padding: 24px 20px; border-radius: 12px; }
+  .hero h1 { font-size: 20px; }
+  .hero-stats { flex-wrap: wrap; }
+  .hero-stat { min-width: 0; padding: 13px 14px; }
+  .hero-stat-num { font-size: 17px; }
+  .group-head { flex-wrap: wrap; }
+  .group-count { margin-left: 0; width: 100%; }
+  .card-grid { grid-template-columns: 1fr; }
+  .card { padding: 18px; }
+  .settings-header { padding: 20px; }
+  .set-group-head, .setting-item { padding-left: 20px; padding-right: 20px; }
+  .toast-container { left: 16px; right: 16px; top: 74px; }
+  .toast { min-width: 0; max-width: 100%; }
+  .foot-inner { padding: 18px 16px; }
+}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <div class="brand-icon">🗂️</div>
+      <span class="brand-text">
+        <span class="brand-name">内网文档处理工作台</span>
+        <span class="brand-sub">Local Document Workbench</span>
+      </span>
+    </div>
+    <nav class="nav-tabs">
+      <button class="tab active" data-tab="workbench">工作台</button>
+      <button class="tab" data-tab="settings">系统设置</button>
+    </nav>
+    <div class="navbar-status">
+      <span class="status-dot"></span>
+      <span>本地服务运行中</span>
+      <span class="version-badge">v1.0</span>
+    </div>
+  </div>
+</header>
+
+<main class="page active" data-page="workbench">
+  <div class="wrap">
+    <section class="hero">
+      <div class="hero-content">
+        <span class="hero-eyebrow">离线文档批处理</span>
+        <h1>内网文档处理工作台</h1>
+        <p>Word / Excel / PPT / PDF 全场景批处理工具集。全部处理在本机进程内完成，数据不出网、运行期无需联网，断网环境开箱即用。</p>
+      </div>
+      <ul class="hero-stats">
+        <li class="hero-stat">
+          <div class="hero-stat-num" id="stat-enabled">--</div>
+          <div class="hero-stat-label">已启用功能</div>
+        </li>
+        <li class="hero-stat">
+          <div class="hero-stat-num mono">127.0.0.1:5000</div>
+          <div class="hero-stat-label">服务地址</div>
+        </li>
+        <li class="hero-stat">
+          <div class="hero-stat-num" id="stat-time">--:--:--</div>
+          <div class="hero-stat-label">当前时间</div>
+        </li>
+      </ul>
+    </section>
+    <div id="card-grid"></div>
+  </div>
+</main>
+
+<main class="page" data-page="settings">
+  <div class="wrap">
+    <div class="settings-container">
+      <div class="settings-header">
+        <div>
+          <h2>功能开关管理</h2>
+          <p>关闭后，工作台对应卡片将置灰且不可操作，后端接口同步拒绝服务。修改后需保存才会生效，配置写入项目根目录的 config.json。</p>
+        </div>
+        <div class="settings-actions">
+          <button class="btn btn-secondary" id="btn-enable-all">全部开启</button>
+          <button class="btn btn-secondary" id="btn-disable-all">全部关闭</button>
+          <button class="btn btn-primary" id="btn-save-config">保存设置</button>
+        </div>
+      </div>
+      <div class="settings-list" id="settings-list"></div>
+    </div>
+  </div>
+</main>
+
+<footer class="foot">
+  <div class="foot-inner">
+    <span class="foot-item">内网文档处理工作台 <span class="version-badge">v1.0</span></span>
+    <span class="foot-item">
+      <span>全程本地处理</span>
+      <span class="foot-sep"></span>
+      <span>数据不出网</span>
+      <span class="foot-sep"></span>
+      <span>运行期无需联网</span>
+    </span>
+  </div>
+</footer>
+
+<div class="toast-container" id="toast-container"></div>
+
+<script>
+const App = {
+  state: { config: {}, features: [], activeTab: 'workbench' },
+  endpointMap: {
+    word_merge:   '/api/word/merge',
+    word_redact:  '/api/word/redact',
+    word_extract: '/api/word/extract',
+    excel_split:  '/api/excel/split',
+    excel_merge:  '/api/excel/merge',
+    excel_idcard: '/api/excel/idcard',
+    ppt_outline:  '/api/ppt/outline',
+    ppt_watermark:'/api/ppt/watermark',
+    ppt_images:   '/api/ppt/images',
+    pdf_merge:    '/api/pdf/merge',
+    file_rename:  '/api/file/rename',
+    text_clean:   '/api/text/clean'
+  }
+};
+
+function $(sel, root = document) { return root.querySelector(sel); }
+function $$(sel, root = document) { return Array.from(root.querySelectorAll(sel)); }
+
+function showToast(msg, type = 'info') {
+  const container = $('#toast-container');
+  const icon = { success: '✓', error: '✕', warning: '!', info: 'i' }[type] || 'i';
+  const toast = document.createElement('div');
+  toast.className = `toast toast-${type}`;
+  toast.innerHTML = `<span class="toast-icon ${type}">${icon}</span><span class="toast-msg">${msg}</span>`;
+  container.appendChild(toast);
+  setTimeout(() => {
+    toast.style.transition = 'all .3s ease';
+    toast.style.opacity = '0';
+    toast.style.transform = 'translateX(24px)';
+    setTimeout(() => toast.remove(), 300);
+  }, 3200);
+}
+
+function updateClock() {
+  const now = new Date();
+  const hh = String(now.getHours()).padStart(2, '0');
+  const mm = String(now.getMinutes()).padStart(2, '0');
+  const ss = String(now.getSeconds()).padStart(2, '0');
+  const el = $('#stat-time');
+  if (el) el.textContent = `${hh}:${mm}:${ss}`;
+}
+
+function groupByCategory(features) {
+  const groups = [];
+  const index = {};
+  features.forEach(f => {
+    const cat = f.category || '其他';
+    if (!(cat in index)) { index[cat] = groups.length; groups.push({ category: cat, items: [] }); }
+    groups[index[cat]].items.push(f);
+  });
+  return groups;
+}
+
+function pad2(n) { return String(n).padStart(2, '0'); }
+
+async function loadConfig() {
+  try {
+    const res = await fetch('/api/config');
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    App.state.config = data.config || {};
+    App.state.features = data.features || [];
+    renderWorkbench();
+    renderSettings();
+    updateStats();
+  } catch (e) {
+    showToast('加载配置失败: ' + e.message, 'error');
+  }
+}
+
+function updateStats() {
+  const enabled = Object.values(App.state.config).filter(Boolean).length;
+  const el = $('#stat-enabled');
+  if (el) el.textContent = enabled;
+}
+
+function cardHtml(f, enabled) {
+  const paramsHtml = (f.params || []).map(p => {
+    const isTextarea = p.type === 'textarea';
+    const inputTag = isTextarea
+      ? `<textarea data-param="${p.key}" placeholder="${escapeAttr(p.default || '')}" rows="3"></textarea>`
+      : `<input type="text" data-param="${p.key}" value="${escapeAttr(p.default || '')}" placeholder="${escapeAttr(p.default || '')}">`;
+    return `<div class="param-row"><label>${escapeHtml(p.label)}</label>${inputTag}</div>`;
+  }).join('');
+
+  const isTextOnly = f.key === 'text_clean';
+  const hasFile    = !isTextOnly;
+  const accept     = f.accept || '';
+  const multiple   = f.multiple ? 'multiple' : '';
+  const dropHtml   = hasFile ? `
+    <div class="card-drop">
+      <div class="card-drop-icon">📁</div>
+      <div class="card-drop-hint">点击或<strong>拖拽文件</strong>到此处</div>
+      <div class="card-drop-hint" style="margin-top:3px;font-size:11px;color:#98A6BA">
+        ${escapeHtml(accept || '任意类型')}${f.multiple ? ' · 可多选' : ' · 单个文件'}
+      </div>
+    </div>
+    <input type="file" class="card-file-input" style="display:none" accept="${accept}" ${multiple}>
+    <div class="card-files">
+      <div class="card-files-count">已选择 <span class="file-count-num">0</span> 个文件</div>
+      <div class="card-files-list"></div>
+    </div>
+  ` : '';
+
+  return `
+    <article class="card" data-key="${f.key}" data-enabled="${enabled}" data-has-file="${hasFile}" data-text-only="${isTextOnly}">
+      <div class="card-header">
+        <div class="card-icon-wrap">${f.icon}</div>
+        <span class="card-status ${enabled ? 'on' : 'off'}">${enabled ? '已开启' : '已关闭'}</span>
+      </div>
+      <h3 class="card-title">${escapeHtml(f.name)}</h3>
+      <p class="card-desc">${escapeHtml(f.desc)}</p>
+      ${paramsHtml ? `<div class="card-params">${paramsHtml}</div>` : ''}
+      ${dropHtml}
+      <button class="card-btn" type="button">选择文件</button>
+      <div class="card-result"></div>
+    </article>
+  `;
+}
+
+function renderWorkbench() {
+  const grid = $('#card-grid');
+  const groups = groupByCategory(App.state.features);
+  grid.innerHTML = groups.map((g, i) => {
+    const on = g.items.filter(f => App.state.config[f.key]).length;
+    return `
+      <section class="group">
+        <header class="group-head">
+          <span class="group-no">${pad2(i + 1)}</span>
+          <h2>${escapeHtml(g.category)}</h2>
+          <span class="group-count">${on} / ${g.items.length} 项已启用</span>
+        </header>
+        <div class="card-grid">
+          ${g.items.map(f => cardHtml(f, App.state.config[f.key])).join('')}
+        </div>
+      </section>
+    `;
+  }).join('');
+  grid.querySelectorAll('.card').forEach(c => updateButton(c));
+}
+
+function updateButton(card) {
+  const btn = card.querySelector('.card-btn');
+  if (!btn) return;
+  const isTextOnly = card.dataset.textOnly === 'true';
+  const isFileFeat = card.dataset.hasFile !== 'false';
+  const hasFiles   = !!(card._files && card._files.length > 0);
+  const processing = card.dataset.processing === 'true';
+  const disabled   = card.dataset.enabled === 'false';
+  if (disabled) { btn.innerHTML = '功能已停用'; btn.disabled = true; return; }
+  if (processing) { btn.innerHTML = '<span class="spinner"></span>处理中'; btn.disabled = true; btn.classList.add('processing'); return; }
+  btn.classList.remove('processing');
+  btn.disabled = false;
+  if (isTextOnly) { btn.innerHTML = '开始处理'; }
+  else if (hasFiles) { btn.innerHTML = '开始处理'; }
+  else { btn.innerHTML = '选择文件'; }
+}
+
+function showFiles(card, files) {
+  card._files = files;
+  const box   = card.querySelector('.card-files');
+  const num   = card.querySelector('.file-count-num');
+  const list  = card.querySelector('.card-files-list');
+  if (files && files.length > 0) {
+    num.textContent = files.length;
+    const names = Array.from(files).map(f => f.name);
+    const shown = names.slice(0, 3).join('、');
+    list.textContent = names.length > 3 ? `${shown} 等共 ${files.length} 个文件` : shown;
+    box.classList.add('show');
+  } else { box.classList.remove('show'); }
+  updateButton(card);
+}
+
+function clearResult(card) {
+  const result = card.querySelector('.card-result');
+  result.classList.remove('show');
+  result.innerHTML = '';
+}
+
+function showResult(card, data, error) {
+  const result = card.querySelector('.card-result');
+  if (data) {
+    const meta = [];
+    if (data.merged_count)   meta.push(`合并 ${data.merged_count} 份`);
+    if (data.file_count)     meta.push(`处理 ${data.file_count} 份`);
+    if (data.slide_count)    meta.push(`共 ${data.slide_count} 页`);
+    if (data.parsed_count !== undefined) meta.push(`解析 ${data.parsed_count} 条`);
+    if (data.image_count)    meta.push(`提取 ${data.image_count} 张图`);
+    if (data.watermark)      meta.push(`水印: ${data.watermark}`);
+    if (data.stat)           meta.push(data.stat);
+    if (data.id_column)      meta.push(`识别列: ${data.id_column}`);
+    if (data.added_columns && data.added_columns.length) {
+      meta.push(`新增列: ${data.added_columns.join('、')}`);
+    }
+    result.innerHTML = `
+      <div class="result-success">
+        <span class="result-tag">处理完成</span>
+        <a href="${data.download_url}" download>
+          <span class="result-file">${escapeHtml(data.filename)}</span>
+          <span class="result-dl">下载</span>
+        </a>
+        ${meta.length ? `<div class="result-meta">${escapeHtml(meta.join(' · '))}</div>` : ''}
+      </div>
+    `;
+  } else {
+    result.innerHTML = `
+      <div class="result-error">
+        <span class="result-tag">处理失败</span>
+        <p>${escapeHtml(error || '处理失败')}</p>
+      </div>
+    `;
+  }
+  result.classList.add('show');
+}
+
+function handleGridClick(e) {
+  const card = e.target.closest('.card');
+  if (!card) return;
+  if (card.dataset.enabled === 'false') { showToast('该功能已被管理员关闭', 'warning'); return; }
+  if (e.target.closest('.card-drop')) { card.querySelector('.card-file-input').click(); return; }
+  if (e.target.closest('.card-btn')) { handleButtonClick(card); return; }
+}
+
+function handleButtonClick(card) {
+  if (card.dataset.processing === 'true') return;
+  const isFileFeat = card.dataset.hasFile !== 'false';
+  const hasFiles   = !!(card._files && card._files.length > 0);
+  if (isFileFeat && !hasFiles) { card.querySelector('.card-file-input').click(); return; }
+  submitCard(card);
+}
+
+function handleGridChange(e) {
+  if (e.target.matches('.card-file-input')) {
+    const card = e.target.closest('.card');
+    showFiles(card, e.target.files);
+  }
+}
+
+function handleGridDragOver(e) {
+  const drop = e.target.closest('.card-drop');
+  if (!drop) return;
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'copy';
+  drop.classList.add('dragover');
+}
+function handleGridDragLeave(e) {
+  const drop = e.target.closest('.card-drop');
+  if (!drop) return;
+  if (!drop.contains(e.relatedTarget)) { drop.classList.remove('dragover'); }
+}
+function handleGridDrop(e) {
+  const drop = e.target.closest('.card-drop');
+  if (!drop) return;
+  e.preventDefault();
+  drop.classList.remove('dragover');
+  const card = drop.closest('.card');
+  if (card.dataset.enabled === 'false') { showToast('该功能已被管理员关闭', 'warning'); return; }
+  const files = e.dataTransfer.files;
+  if (!files || files.length === 0) return;
+  try {
+    const input = card.querySelector('.card-file-input');
+    if (input) {
+      const dt = new DataTransfer();
+      for (const f of files) dt.items.add(f);
+      input.files = dt.files;
+    }
+  } catch (_) { }
+  showFiles(card, files);
+}
+
+async function submitCard(card) {
+  const key      = card.dataset.key;
+  const endpoint = App.endpointMap[key];
+  if (!endpoint) { showToast('未知功能: ' + key, 'error'); return; }
+  const isFileFeat = card.dataset.hasFile !== 'false';
+  const isTextOnly = card.dataset.textOnly === 'true';
+  if (isFileFeat && (!card._files || card._files.length === 0)) { showToast('请先选择文件', 'warning'); return; }
+  if (isTextOnly) {
+    const textarea = card.querySelector('textarea[data-param="text"]');
+    if (textarea && !textarea.value.trim()) { showToast('请输入待清洗的文本', 'warning'); return; }
+  }
+  const formData = new FormData();
+  if (isFileFeat && card._files) {
+    for (const f of card._files) formData.append('files', f, f.name);
+  }
+  card.querySelectorAll('[data-param]').forEach(input => {
+    formData.append(input.dataset.param, input.value || '');
+  });
+  card.dataset.processing = 'true';
+  updateButton(card);
+  clearResult(card);
+  try {
+    const res = await fetch(endpoint, { method: 'POST', body: formData });
+    let data;
+    try { data = await res.json(); }
+    catch (_) { throw new Error('服务器响应格式错误'); }
+    if (res.ok && data.status === 'ok') {
+      showResult(card, data);
+      showToast('处理成功', 'success');
+    } else {
+      showResult(card, null, data.message || `HTTP ${res.status}`);
+      showToast(data.message || '处理失败', 'error');
+    }
+  } catch (e) {
+    showResult(card, null, e.message);
+    showToast('请求失败: ' + e.message, 'error');
+  } finally {
+    card.dataset.processing = 'false';
+    updateButton(card);
+  }
+}
+
+function settingsHtml(f, enabled) {
+  return `
+    <div class="setting-item" data-setting-key="${f.key}">
+      <div class="setting-icon">${f.icon}</div>
+      <div class="setting-info">
+        <div class="setting-name">${escapeHtml(f.name)}</div>
+        <div class="setting-desc">${escapeHtml(f.desc)}</div>
+        <code class="setting-key">config.json → "${f.key}"</code>
+      </div>
+      <label class="toggle">
+        <input type="checkbox" data-setting="${f.key}" ${enabled ? 'checked' : ''}>
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+  `;
+}
+
+function renderSettings() {
+  const list = $('#settings-list');
+  const groups = groupByCategory(App.state.features);
+  list.innerHTML = groups.map((g, i) => `
+    <div class="set-group">
+      <div class="set-group-head">
+        <span class="group-no">${pad2(i + 1)}</span>
+        <h3>${escapeHtml(g.category)}</h3>
+      </div>
+      ${g.items.map(f => settingsHtml(f, App.state.config[f.key])).join('')}
+    </div>
+  `).join('');
+}
+
+function setAllToggles(value) {
+  $$('[data-setting]').forEach(input => { input.checked = value; });
+}
+
+async function saveSettings() {
+  const newConfig = {};
+  $$('[data-setting]').forEach(input => { newConfig[input.dataset.setting] = input.checked; });
+  try {
+    const res = await fetch('/api/config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newConfig)
+    });
+    const data = await res.json();
+    if (data.status === 'ok') {
+      App.state.config = data.config;
+      renderWorkbench();
+      renderSettings();
+      updateStats();
+      showToast('设置已保存并生效', 'success');
+    } else {
+      showToast('保存失败: ' + (data.message || '未知错误'), 'error');
+    }
+  } catch (e) {
+    showToast('保存失败: ' + e.message, 'error');
+  }
+}
+
+function switchTab(tab, silent) {
+  if (tab !== 'workbench' && tab !== 'settings') tab = 'workbench';
+  App.state.activeTab = tab;
+  $$('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+  $$('.page').forEach(p => p.classList.toggle('active', p.dataset.page === tab));
+  if (!silent && location.hash !== '#' + tab) {
+    history.replaceState(null, '', '#' + tab);
+  }
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function initialTab() {
+  const hash = (location.hash || '').replace(/^#/, '');
+  return hash === 'settings' ? 'settings' : 'workbench';
+}
+
+function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+function escapeAttr(str) { return escapeHtml(str); }
+
+function bindEvents() {
+  $$('.tab').forEach(t => {
+    t.addEventListener('click', () => switchTab(t.dataset.tab));
+  });
+  window.addEventListener('hashchange', () => {
+    const tab = (location.hash || '').replace(/^#/, '') === 'settings' ? 'settings' : 'workbench';
+    if (tab !== App.state.activeTab) switchTab(tab, true);
+  });
+  $('#btn-save-config').addEventListener('click', saveSettings);
+  $('#btn-enable-all').addEventListener('click', () => setAllToggles(true));
+  $('#btn-disable-all').addEventListener('click', () => setAllToggles(false));
+  const grid = $('#card-grid');
+  grid.addEventListener('click',     handleGridClick);
+  grid.addEventListener('change',    handleGridChange);
+  grid.addEventListener('dragover',  handleGridDragOver);
+  grid.addEventListener('dragleave', handleGridDragLeave);
+  grid.addEventListener('drop',      handleGridDrop);
+  setInterval(updateClock, 1000);
+  updateClock();
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  switchTab(initialTab(), true);
+  bindEvents();
+  loadConfig();
+});
+</script>
+</body>
+</html>
