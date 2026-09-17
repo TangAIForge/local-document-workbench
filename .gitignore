@@ -1,0 +1,37 @@
+# ---------- Python ----------
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+.eggs/
+.venv/
+venv/
+env/
+ENV/
+.python-version
+
+# ---------- PyInstaller ----------
+build/
+dist/
+*.spec
+*.manifest
+
+# ---------- 运行时数据（首次运行自动生成，不入库）----------
+config.json
+uploads/
+downloads/
+
+# ---------- 日志与临时文件 ----------
+*.log
+*.tmp
+*.bak
+~$*
+
+# ---------- 编辑器 / 操作系统 ----------
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+desktop.ini
